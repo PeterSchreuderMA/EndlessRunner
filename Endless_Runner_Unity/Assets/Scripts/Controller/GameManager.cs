@@ -1,17 +1,27 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour 
 {
     public GameObject playerPrefab;
+    public Text continueText;
+    public Text scoreText;
 
+    private float timeElapsed = 0f;
+    private float bestTime = 0f;
 
+    private float blinkTime = 0f;
+    private bool blink;
     private bool gameStarted;
     private TimeManager _timeManager;
     private GameObject player;
     private GameObject floor;
     private Spawner spawner;
+
+    private bool beatBestTime;
 
     // Use this for initialization
 
@@ -38,6 +48,10 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0;
 
         Debug.Log("Start (Time Scale): " + Time.timeScale);
+
+        continueText.text = "PRESS ANY BUTTON TO START";
+
+        bestTime = PlayerPrefs.GetFloat("BestTime");
     }
 
 	
@@ -58,6 +72,27 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        if (!gameStarted)
+        {
+            blinkTime++;
+
+            if (blinkTime % 40 == 0)
+            {
+                blink = !blink;
+            }
+
+            continueText.canvasRenderer.SetAlpha(blink ? 0 : 1);
+
+            var textColor = beatBestTime ? "#FF0" : "#FFF";
+
+            scoreText.text = "TIME: " + FormatTime(timeElapsed)+"\n<color="+textColor+">BEST: " + FormatTime(bestTime)+"</color>";
+        }
+        else
+        {
+            timeElapsed += Time.deltaTime;
+            scoreText.text = "TIME: " + FormatTime(timeElapsed);
+        }
+
     }
 
     //When the player gets killed
@@ -73,6 +108,15 @@ public class GameManager : MonoBehaviour
 
         gameStarted = false;
         Debug.Log("Player got killed (Time Scale): " + Time.timeScale);
+
+        continueText.text = "PRESS ANY BUTTON TO RESTART";
+
+        if (timeElapsed > bestTime)
+        {
+            bestTime = timeElapsed;
+            PlayerPrefs.SetFloat("BestTime", bestTime);
+            beatBestTime = true;
+        }
     }
 
 
@@ -89,8 +133,21 @@ public class GameManager : MonoBehaviour
         gameStarted = true;
 
         Debug.Log("Reset the Game (Time Scale): " + Time.timeScale);
+
+        continueText.canvasRenderer.SetAlpha(0);
+
+        timeElapsed = 0;
+
+        beatBestTime = false;
     }
 
+    string FormatTime(float value)
+    {
+        TimeSpan t = TimeSpan.FromSeconds(value);
+
+
+        return string.Format("{0:D2}:{1:D2}",t.Minutes,t.Seconds);
+    }
 
 }
 
